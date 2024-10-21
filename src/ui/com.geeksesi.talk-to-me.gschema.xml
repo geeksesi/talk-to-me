@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schemalist>
+    <schema id="com.geeksesi.talk-to-me" path="/com/geeksesi/talk-to-me/">
+        <key name="openai-api-key" type="s">
+            <default>"Enter your Open AI API key here..."</default>
+            <summary>OpenAI API key</summary>
+        </key>
+        <key name="openai-model" type="s">
+            <default>"text-davinci-003"</default>
+            <summary>OpenAI model</summary>
+        </key>
+        <key name="openai-max-tokens" type="i">
+            <default>256</default>
+            <summary>OpenAI max tokens</summary>
+        </key>
+    </schema>
+</schemalist>
