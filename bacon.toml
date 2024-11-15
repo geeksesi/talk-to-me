@@ -21,9 +21,8 @@ watch = [
     "src/ui/**/*.xml",
     "src/ui/**/*.css",
     "src/client.rs",
-    # Only watch client-related cargo changes
-    { path = "Cargo.toml", ignore_regex = "^.*\\[.*server.*\\].*$" }
 ]
+
 summary = true
 on_change_strategy = "kill_then_restart"
 

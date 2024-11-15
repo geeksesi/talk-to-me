@@ -1,4 +1,5 @@
 mod imp;
+pub mod connection;
 
 use crate::ui::message_object::MessageObject;
 use crate::ui::message_row::MessageRow;
@@ -10,7 +11,7 @@ use gtk::{gio, glib, Application, NoSelection, SignalListItemFactory};
 use gtk::{prelude::*, ListItem};
 use serde::{Deserialize, Serialize};
 // use serde_json::json;
-use std::io::*;
+use crate::ui::window::connection::WindowConnection;
 
 glib::wrapper! {
     pub struct Window(ObjectSubclass<imp::Window>)
@@ -57,7 +58,21 @@ impl Window {
     }
 
     fn setup_callbacks(&self) {
+        self.imp().connection.replace(Some(WindowConnection::new()));
         self.add_message(false, &"Hello! How can I help you today?".to_string());
+
+        // Setup a timeout to check for server responses
+        let weak_window = self.downgrade();
+        glib::timeout_add_local(std::time::Duration::from_millis(100), move || {
+            if let Some(window) = weak_window.upgrade() {
+                if let Some(connection) = window.imp().connection.borrow().as_ref() {
+                    if let Some(response) = connection.try_receive() {
+                        window.add_message(false, &response);
+                    }
+                }
+            }
+            glib::ControlFlow::Continue
+        });
 
         self.imp().entry.connect_activate({
             let weak_window = self.downgrade(); 
@@ -95,6 +110,11 @@ impl Window {
         }
         buffer.set_text("");
         self.add_message(true, &content.to_string());
+
+        // Send message to server
+        if let Some(connection) = self.imp().connection.borrow().as_ref() {
+            connection.send(content.to_string());
+        }
     }
 
     fn setup_factory(&self) {

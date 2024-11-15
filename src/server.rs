@@ -1,14 +1,18 @@
-use std::net::SocketAddr;
+mod backend;
 
+use std::net::SocketAddr;
 use miette::IntoDiagnostic;
 use r3bl_terminal_async::port_availability;
-
 use tokio::task::AbortHandle;
-use tokio_uring::{
-    buf::BoundedBuf,
-    net::{TcpListener, TcpStream},
-};
+use tokio_uring::net::TcpListener;
 use tokio_util::sync::CancellationToken;
+
+use backend::ConnectionHandler;
+
+async fn process_socket_connection(stream: tokio_uring::net::TcpStream) -> miette::Result<()> {
+    let mut handler = ConnectionHandler::new(stream);
+    handler.process().await
+}
 
 async fn start_server(cancellation_token: CancellationToken) -> miette::Result<()> {
     let tcp_listener = {
@@ -73,29 +77,4 @@ fn register_tracing_subscriber() {
         .with_line_number(true)
         .with_thread_names(true)
         .init();
-}
-
-async fn process_socket_connection(stream: TcpStream) -> miette::Result<()> {
-    // socket.ready(b"Hello, world!\n").await;
-    tracing::info!("Processing socket connection");
-    let mut total_byte_read = 0;
-    let mut buf = vec![0u8; 10];
-    loop {
-        let (result_num_bytes_read, return_buf) = stream.read(buf).await;
-        buf = return_buf;
-        let num_bytes_read = result_num_bytes_read.into_diagnostic()?;
-        // check for EOF
-        if num_bytes_read == 0 {
-            break;
-        }
-        let (result_num_byte_written, slice) = stream.write_all(buf.slice(..num_bytes_read)).await;
-        result_num_byte_written.into_diagnostic()?;
-        buf = slice.into_inner();
-        total_byte_read += num_bytes_read;
-
-        tracing::info!("total_byte_read: {}", total_byte_read);
-    }
-    tracing::info!("connection is done");
-
-    Ok(())
 }

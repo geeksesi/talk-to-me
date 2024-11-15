@@ -1,6 +1,7 @@
 mod message_object;
 mod message_row;
 mod window;
+mod connection;
 
 use gtk::prelude::*;
 use gtk::Application;

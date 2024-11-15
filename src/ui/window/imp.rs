@@ -4,6 +4,8 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib, CompositeTemplate, Entry, ListView};
 use std::cell::RefCell;
+use super::connection::WindowConnection;
+
 
 #[derive(CompositeTemplate, Default)]
 #[template(resource = "/com/geeksesi/talk-to-me/window.ui")]
@@ -13,6 +15,7 @@ pub struct Window {
     #[template_child]
     pub messages_list: TemplateChild<ListView>,
     pub messages: RefCell<Option<gio::ListStore>>,
+    pub connection: RefCell<Option<WindowConnection>>,
 }
 
 #[glib::object_subclass]
