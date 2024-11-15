@@ -25,15 +25,22 @@ impl MessageRow {
     }
 
     pub fn bind(&self, message_object: &MessageObject) {
-        let user_label = self.imp().user_label.get();
         let content_label = self.imp().content_label.get();
         let mut bindings = self.imp().bindings.borrow_mut();
 
-        let user_label_binding = message_object
-            .bind_property("user", &user_label, "label")
-            .flags(BindingFlags::SYNC_CREATE)
-            .build();
-        bindings.push(user_label_binding);
+        let user: String = message_object
+            .property::<String>("user");
+            
+
+        let widget = self.upcast_ref::<gtk::Widget>();
+        widget.remove_css_class("message-ai");
+        widget.remove_css_class("message-user");
+        
+        if user == "You" {
+            widget.add_css_class("message-user");
+        } else {
+            widget.add_css_class("message-ai");
+        }
 
         let content_label_binding = message_object
             .bind_property("content", &content_label, "label")

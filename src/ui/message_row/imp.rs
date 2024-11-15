@@ -9,8 +9,6 @@ use gtk::{glib, CompositeTemplate, Label};
 #[template(resource = "/com/geeksesi/talk-to-me/message_row.ui")]
 pub struct MessageRow {
     #[template_child]
-    pub user_label: TemplateChild<Label>,
-    #[template_child]
     pub content_label: TemplateChild<Label>,
     pub bindings: RefCell<Vec<Binding>>,
 }

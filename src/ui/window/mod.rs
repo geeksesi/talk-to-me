@@ -31,15 +31,6 @@ struct ResultMain {
     choices: Vec<ResultChoice>,
 }
 
-fn trim_newline(mut s: String) -> String {
-    if s.starts_with('\n') {
-        s.remove(0);
-    }
-    if s.starts_with('\n') {
-        s.remove(0);
-    }
-    return s;
-}
 
 impl Window {
     pub fn new(app: &Application) -> Self {
@@ -87,19 +78,10 @@ impl Window {
 
     }
 
-    fn convert_result_to_object(returned: &String) -> Result<ResultMain> {
-        let json_result: ResultMain = serde_json::from_str(returned)?;
-        Ok(json_result)
-    }
-
-    fn send_request(msg: &String) -> String {
-        msg.to_string()
-    }
-
     fn add_message(&self, user: bool, msg: &String) {
         let from_who = match user {
             true => "You",
-            false => "ChatGPT",
+            false => "AI",
         };
         let message = MessageObject::new(from_who.parse().unwrap(), msg.to_string());
         self.messages().append(&message);
@@ -113,35 +95,6 @@ impl Window {
         }
         buffer.set_text("");
         self.add_message(true, &content.to_string());
-        // let obj = self;
-
-        // let (sender, receiver) = MainContext::channel();
-        // let sender = sender.clone();
-        // thread::spawn(move || {
-        //     sender
-        //         .send("OPENAI_CHATGPT_BUTTON_DISABLE".to_string())
-        //         .expect("Could not send through channel");
-        //     sender
-        //         .send(window::Window::send_request(&content.to_string()))
-        //         .expect("Could not send through channel");
-        // });
-        // receiver.attach(
-        //     None,
-        //     clone!(
-        //         #[weak]
-        //          obj => @default-return Continue(false),
-        //             move |message| {
-        //                 if message == "OPENAI_CHATGPT_BUTTON_DISABLE" {
-        //                     obj.imp().entry.set_sensitive(false);
-        //                 } else {
-        //                     obj.add_message(false, &message);
-        //                     obj.imp().entry.set_sensitive(true);
-        //                     obj.imp().entry.get().grab_focus();
-        //                 }
-        //                 Continue(true)
-        //             }
-        //     ),
-        // );
     }
 
     fn setup_factory(&self) {
