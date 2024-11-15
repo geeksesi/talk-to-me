@@ -26,3 +26,14 @@
 #messages_list .activatable:focus {
     outline: none;
 }
+
+/* Add these to your existing CSS */
+#messages_list label selection {
+    background-color: alpha(@theme_selected_bg_color, 0.3);
+    color: @theme_selected_fg_color;
+}
+
+/* Optional: Add a subtle hover effect for the text area */
+#messages_list label:hover {
+    cursor: text;
+}
