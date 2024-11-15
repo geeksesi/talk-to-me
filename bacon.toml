@@ -1,0 +1,27 @@
+# This is a configuration file for the bacon tool
+#
+# Bacon repository: https://github.com/Canop/bacon
+# Complete help on configuration: https://dystroy.org/bacon/config/
+# You can also check bacon's own bacon.toml file
+#  as an example: https://github.com/Canop/bacon/blob/main/bacon.toml
+
+default_job = "run"
+
+[jobs.run]
+command = [
+    "cargo", "run",
+    "--color", "always",
+    # put launch parameters for your program behind a `--` separator
+]
+need_stdout = true
+allow_warnings = true
+background = true
+watch = [
+    "src/**/*.rs",
+    "src/**/**/*.rs",
+    "src/*.rs",
+    "Cargo.toml",
+]
+summary = true
+on_change_strategy = "kill_then_restart"
+

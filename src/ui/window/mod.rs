@@ -2,16 +2,15 @@ mod imp;
 
 use crate::ui::message_object::MessageObject;
 use crate::ui::message_row::MessageRow;
-use crate::ui::window;
+// use crate::ui::window;
 // use curl::easy::{Easy, List};
-use glib::{clone, MainContext, Object};
+use glib::Object;
 use gtk::subclass::prelude::*;
 use gtk::{gio, glib, Application, NoSelection, SignalListItemFactory};
 use gtk::{prelude::*, ListItem};
 use serde::{Deserialize, Serialize};
 // use serde_json::json;
 use std::io::*;
-use std::thread;
 
 glib::wrapper! {
     pub struct Window(ObjectSubclass<imp::Window>)
@@ -62,19 +61,30 @@ impl Window {
 
         self.imp().messages.replace(Some(model));
 
-        // let selection_model = NoSelection::new(Some(&self.messages()));
-        // self.imp().messages_list.set_model(Some(&selection_model));
+        let selection_model = NoSelection::new(Some(self.messages().upcast::<gio::ListModel>()));
+        self.imp().messages_list.set_model(Some(&selection_model));
     }
 
     fn setup_callbacks(&self) {
-        // todo!("Connect the callbacks for the entry and the button.");
-        // self.imp().entry.connect_activate(clone!(move |_| {
-        //     self.send_message();
-        // }));
+        self.add_message(false, &"Hello! How can I help you today?".to_string());
 
-        // self.imp().entry.connect_icon_release(clone!(move |_, _| {
-        //     self.send_message();
-        // }));
+        self.imp().entry.connect_activate({
+            let weak_window = self.downgrade(); 
+            move |_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.send_message(); 
+                }
+            }
+        });
+        self.imp().entry.connect_icon_release({
+            let weak_window = self.downgrade(); 
+            move |_,_| {
+                if let Some(window) = weak_window.upgrade() {
+                    window.send_message(); 
+                }
+            }
+        });
+
     }
 
     fn convert_result_to_object(returned: &String) -> Result<ResultMain> {
@@ -87,12 +97,10 @@ impl Window {
     }
 
     fn add_message(&self, user: bool, msg: &String) {
-        let from_who;
-        if user {
-            from_who = "You";
-        } else {
-            from_who = "ChatGPT";
-        }
+        let from_who = match user {
+            true => "You",
+            false => "ChatGPT",
+        };
         let message = MessageObject::new(from_who.parse().unwrap(), msg.to_string());
         self.messages().append(&message);
     }
@@ -105,7 +113,7 @@ impl Window {
         }
         buffer.set_text("");
         self.add_message(true, &content.to_string());
-        let obj = self;
+        // let obj = self;
 
         // let (sender, receiver) = MainContext::channel();
         // let sender = sender.clone();
