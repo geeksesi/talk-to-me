@@ -5,21 +5,40 @@
 # You can also check bacon's own bacon.toml file
 #  as an example: https://github.com/Canop/bacon/blob/main/bacon.toml
 
-default_job = "run"
+default_job = "client"
 
-[jobs.run]
+[jobs.client]
 command = [
     "cargo", "run",
     "--color", "always",
-    # put launch parameters for your program behind a `--` separator
 ]
 need_stdout = true
 allow_warnings = true
 background = true
 watch = [
-    "src/**/*.rs",
-    "src/**/**/*.rs",
-    "src/*.rs",
+    "src/ui/**/*.rs",
+    "src/ui/**/*.ui",
+    "src/ui/**/*.xml",
+    "src/ui/**/*.css",
+    "src/client.rs",
+    # Only watch client-related cargo changes
+    { path = "Cargo.toml", ignore_regex = "^.*\\[.*server.*\\].*$" }
+]
+summary = true
+on_change_strategy = "kill_then_restart"
+
+[jobs.server]
+command = [
+    "cargo", "run",
+    "--bin", "server",
+    "--color", "always",
+]
+need_stdout = true
+allow_warnings = true
+background = true
+watch = [
+    "src/backend/**/*.rs",
+    "src/server.rs",
     "Cargo.toml",
 ]
 summary = true
