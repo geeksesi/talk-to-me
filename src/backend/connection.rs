@@ -1,5 +1,4 @@
 use miette::IntoDiagnostic;
-use tokio::time::{sleep, Duration};
 use tokio_uring::net::TcpStream;
 
 pub struct ConnectionHandler {
@@ -28,8 +27,6 @@ impl ConnectionHandler {
             if num_bytes_read == 0 {
                 break;
             }
-
-            sleep(Duration::from_secs(2)).await;
 
             let response = self.create_response(&self.buffer[..num_bytes_read], num_bytes_read);
             let response_bytes = response.into_bytes();

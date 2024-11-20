@@ -26,9 +26,24 @@
                     </object>
                 </child>
                 <child>
-                    <object class="GtkEntry" id="entry">
-                        <property name="placeholder-text" translatable="yes">Start typing…</property>
-                        <property name="secondary-icon-name">document-send</property>
+                    <object class="GtkBox">
+                        <property name="orientation">horizontal</property>
+                        <property name="spacing">6</property>
+                        <child>
+                            <object class="GtkButton" id="voice_button">
+                                <property name="icon-name">microphone-sensitivity-muted-symbolic</property>
+                                <style>
+                                    <class name="circular"/>
+                                </style>
+                            </object>
+                        </child>
+                        <child>
+                            <object class="GtkEntry" id="entry">
+                                <property name="hexpand">true</property>
+                                <property name="placeholder-text" translatable="yes">Start typing…</property>
+                                <property name="secondary-icon-name">document-send</property>
+                            </object>
+                        </child>
                     </object>
                 </child>
             </object>

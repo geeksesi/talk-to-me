@@ -12,6 +12,7 @@ use gtk::{prelude::*, ListItem};
 use serde::{Deserialize, Serialize};
 // use serde_json::json;
 use crate::ui::window::connection::WindowConnection;
+use crate::ui::audio::AudioCapture;
 
 glib::wrapper! {
     pub struct Window(ObjectSubclass<imp::Window>)
@@ -91,6 +92,24 @@ impl Window {
             }
         });
 
+        // Add voice button handling
+        self.imp().audio_capture.replace(Some(AudioCapture::new()));
+        
+        self.imp().voice_button.connect_clicked({
+            let weak_window = self.downgrade();
+            move |button| {
+                if let Some(window) = weak_window.upgrade() {
+                    if let Some(audio_capture) = window.imp().audio_capture.borrow_mut().as_mut() {
+                        let is_recording = audio_capture.toggle_recording();
+                        if is_recording {
+                            button.set_icon_name("microphone-sensitivity-high-symbolic");
+                        } else {
+                            button.set_icon_name("microphone-sensitivity-muted-symbolic");
+                        }
+                    }
+                }
+            }
+        });
     }
 
     fn add_message(&self, user: bool, msg: &String) {

@@ -1,11 +1,12 @@
 mod backend;
 
-use std::net::SocketAddr;
 use miette::IntoDiagnostic;
 use r3bl_terminal_async::port_availability;
+use std::net::SocketAddr;
 use tokio::task::AbortHandle;
-use tokio_uring::net::TcpListener;
+use tokio_uring::net::{TcpListener, UdpSocket};
 use tokio_util::sync::CancellationToken;
+use std::sync::Arc;
 
 use backend::ConnectionHandler;
 
@@ -14,25 +15,52 @@ async fn process_socket_connection(stream: tokio_uring::net::TcpStream) -> miett
     handler.process().await
 }
 
+async fn process_audio_packet(
+    socket: Arc<UdpSocket>,
+    client_addr: SocketAddr,
+    size: usize,
+) -> miette::Result<()> {
+    let mut buf = vec![0u8; size];
+    // socket.send_to(&buf, client_addr).await.into_diagnostic()?;
+    Ok(())
+}
+
 async fn start_server(cancellation_token: CancellationToken) -> miette::Result<()> {
     let tcp_listener = {
-        let addr: SocketAddr = "0.0.0.0:3000".parse().into_diagnostic()?;
+        let tcp_addr: SocketAddr = "0.0.0.0:3000".parse().into_diagnostic()?;
 
-        match port_availability::check(addr).await? {
+        match port_availability::check(tcp_addr).await? {
             port_availability::Status::Free => {
-                println!("Port {} is available", addr.port());
+                println!("Port {} is available", tcp_addr.port());
             }
             port_availability::Status::Occupied => {
-                println!("Port {} is not available", addr.port());
+                println!("Port {} is not available", tcp_addr.port());
             }
         }
 
-        TcpListener::bind(addr).into_diagnostic()?
+        TcpListener::bind(tcp_addr).into_diagnostic()?
     };
 
-    tracing::info!("TCP Listening on {}", "3000");
+    let udp_socket = Arc::new({
+        let udp_addr: SocketAddr = "0.0.0.0:3001".parse().into_diagnostic()?;
+        match port_availability::check(udp_addr).await? {
+            port_availability::Status::Free => {
+                println!("Port {} is available", udp_addr.port());
+            }
+            port_availability::Status::Occupied => {
+                println!("Port {} is not available", udp_addr.port());
+            }
+        }
+        let socket = UdpSocket::bind(udp_addr).await.into_diagnostic()?;
+        socket.connect(udp_addr).await.into_diagnostic()?;
+        socket
+    });
+
+    tracing::info!("TCP Listening on 3000");
+    tracing::info!("UDP Listening on 3001");
 
     let mut abort_handles: Vec<AbortHandle> = Vec::new();
+    let mut buf = vec![0u8; 1024];
 
     loop {
         tokio::select! {
@@ -44,6 +72,12 @@ async fn start_server(cancellation_token: CancellationToken) -> miette::Result<(
             result_tcp_stream = tcp_listener.accept() => {
                 let (tcp_stream, _) = result_tcp_stream.into_diagnostic()?;
                 let join_handle = tokio_uring::spawn(process_socket_connection(tcp_stream));
+                abort_handles.push(join_handle.abort_handle());
+            }
+            (result_udp, buf) = udp_socket.recv_from(buf) => {
+                let (size, addr) = result_udp.into_diagnostic()?;
+                let socket = Arc::clone(&udp_socket);
+                let join_handle = tokio_uring::spawn(process_audio_packet(socket, addr, size));
                 abort_handles.push(join_handle.abort_handle());
             }
         }

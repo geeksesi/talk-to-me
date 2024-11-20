@@ -2,9 +2,10 @@
 use glib::subclass::InitializingObject;
 use gtk::prelude::*;
 use gtk::subclass::prelude::*;
-use gtk::{gio, glib, CompositeTemplate, Entry, ListView};
+use gtk::{gio, glib, CompositeTemplate, Entry, ListView, Button};
 use std::cell::RefCell;
 use super::connection::WindowConnection;
+use super::super::audio::AudioCapture;
 
 
 #[derive(CompositeTemplate, Default)]
@@ -13,9 +14,12 @@ pub struct Window {
     #[template_child]
     pub entry: TemplateChild<Entry>,
     #[template_child]
+    pub voice_button: TemplateChild<Button>,
+    #[template_child]
     pub messages_list: TemplateChild<ListView>,
     pub messages: RefCell<Option<gio::ListStore>>,
     pub connection: RefCell<Option<WindowConnection>>,
+    pub audio_capture: RefCell<Option<AudioCapture>>,
 }
 
 #[glib::object_subclass]

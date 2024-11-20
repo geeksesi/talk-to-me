@@ -2,6 +2,7 @@ mod message_object;
 mod message_row;
 mod window;
 mod connection;
+mod audio;
 
 use gtk::prelude::*;
 use gtk::Application;
