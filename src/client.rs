@@ -2,10 +2,15 @@ mod ui;
 
 use gtk::{gdk, Application, CssProvider};
 use gtk::{gio, prelude::*, style_context_add_provider_for_display};
+use tracing_subscriber;
 
 const APP_ID: &'static str = "com.geeksesi.talk-to-me";
 
 fn main() -> glib::ExitCode {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
+
     // Initialize GTK first
     gtk::init().expect("Failed to initialize GTK.");
 
