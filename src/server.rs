@@ -57,27 +57,15 @@ async fn start_server(cancellation_token: CancellationToken) -> miette::Result<(
                 abort_handles.push(join_handle.abort_handle());
             }
             result = udp_socket.recv_from(buf) => {
-                tracing::info!("UDP socket received something...");
                 let (result, received_buf) = result;
                 match result {
                     Ok((size, addr)) => {
-                        tracing::info!("UDP packet received successfully: size={}, from={}", size, addr);
                         let data = received_buf[..size].to_vec();
                         let handler = Arc::clone(&udp_handler);
                         
-                        let span = tracing::span!(
-                            tracing::Level::INFO,
-                            "udp_packet",
-                            size = data.len(),
-                            addr = %addr
-                        );
-                        
                         let join_handle = tokio_uring::spawn(async move {
-                            let _enter = span.enter();
-                            tracing::info!("Starting UDP packet processing");
                             let mut handler = handler.lock().await;
                             let result = handler.process_packet(data, addr).await;
-                            tracing::info!("Finished UDP packet processing");
                             result
                         });
                         

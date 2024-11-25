@@ -27,6 +27,7 @@ miette = { version = "7.2.0", features = ["fancy"] }
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 
 r3bl_terminal_async = { version = "0.5.3" }
+hound = "3.5.1"
 
 # client
 gtk = { version = "0.9.2", package = "gtk4", features = ["v4_14"] }

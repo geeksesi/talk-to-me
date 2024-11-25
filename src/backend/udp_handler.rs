@@ -23,7 +23,7 @@ impl UdpHandler {
     }
 
     pub async fn process_packet(&mut self, data: Vec<u8>, addr: SocketAddr) -> miette::Result<()> {
-        tracing::debug!("Received audio chunk from {}", addr.clone());
+        tracing::info!("Received audio chunk from {}", addr.clone());
 
         self.audio_processor.process_packet(addr, data).await
     }
