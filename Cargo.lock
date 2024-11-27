@@ -2787,6 +2787,7 @@ dependencies = [
 name = "talk-to-me"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "cpal",
  "crossterm 0.28.1",
  "ctrlc",
