@@ -10,6 +10,7 @@ use tokio::runtime::Runtime;
 use tracing;
 
 mod connection;
+mod debug;
 use connection::AudioConnection;
 use chrono::Local;
 
@@ -84,7 +85,7 @@ impl AudioCapture {
         let current_datetime = Local::now();
         let formatted_datetime:String = current_datetime.format("%Y-%m-%d-%H:%M:%S").to_string();
         let path = format!("{}/recordings/record_{}.wav", env!("CARGO_MANIFEST_DIR"), formatted_datetime);
-        let spec = self.wav_spec_from_config(&config);
+        let spec = debug.wav_spec_from_config(config.clone());
         let writer = hound::WavWriter::create(&path, spec).unwrap();
         let writer = Arc::new(Mutex::new(Some(writer)));
 
@@ -121,7 +122,7 @@ impl AudioCapture {
     {
         let is_recording = self.is_recording.clone();
         let writer = self.wav_writer.clone();
-        // let audio_connection = self.audio_connection.clone();
+        let audio_connection = self.audio_connection.clone();
         // let chunk_start = self.chunk_start.clone();
         // let buffer = self.buffer.clone();
         // let silence_counter = self.silence_counter.clone();
@@ -136,6 +137,9 @@ impl AudioCapture {
                 }
 
                 write_input_data::<T, T>(data, &writer);
+                if let Some(audio_connection) = &audio_connection {
+                    audio_connection.send_audio(data);
+                }
             },
             move |err| {
                 eprintln!("Error in audio stream: {}", err);
@@ -146,35 +150,13 @@ impl AudioCapture {
 
 
 
-    fn sample_format(&self, format: cpal::SampleFormat) -> hound::SampleFormat {
-        if format.is_float() {
-            hound::SampleFormat::Float
-        } else {
-            hound::SampleFormat::Int
-        }
-    }
-
-    fn wav_spec_from_config(&self, config: &cpal::SupportedStreamConfig) -> hound::WavSpec {
-        hound::WavSpec {
-            channels: config.channels() as _,
-            sample_rate: config.sample_rate().0 as _,
-            bits_per_sample: (config.sample_format().sample_size() * 8) as _,
-            sample_format: self.sample_format(config.sample_format()),
-        }
-    }
 }
 
-fn write_input_data<T, U>( input: &[T], writer: &WavWriterHandle)
-where
-    T: Sample,
-    U: Sample + hound::Sample + FromSample<T>,
-{
-    if let Ok(mut guard) = writer.try_lock() {
-        if let Some(writer) = guard.as_mut() {
-            for &sample in input.iter() {
-                let sample: U = U::from_sample(sample);
-                writer.write_sample(sample).ok();
-            }
-        }
-    }
+
+
+fn encode_opus(data: &[i16], sample_rate: u32) -> Vec<u8> {
+    let mut encoder = Encoder::new(sample_rate, Channels::Mono, Application::Audio).unwrap();
+    let mut output = vec![0u8; 4096];
+    let len = encoder.encode(data, &mut output).unwrap();
+    output[..len].to_vec()
 }
