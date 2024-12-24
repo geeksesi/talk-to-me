@@ -1,5 +1,8 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{FromSample, Sample, SampleFormat, SizedSample};
+use debug::write_input_data;
+use opus::{Application, Channels, Encoder};
+use std::f32::consts::E;
 use std::fs::File;
 use std::io::BufWriter;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -11,8 +14,8 @@ use tracing;
 
 mod connection;
 mod debug;
-use connection::AudioConnection;
 use chrono::Local;
+use connection::AudioConnection;
 
 const SILENCE_THRESHOLD: f32 = 0.01; // Adjust this value based on testing
 const MIN_CHUNK_DURATION: Duration = Duration::from_millis(500); // Minimum chunk size
@@ -83,9 +86,13 @@ impl AudioCapture {
             .expect("Failed to get default input config");
 
         let current_datetime = Local::now();
-        let formatted_datetime:String = current_datetime.format("%Y-%m-%d-%H:%M:%S").to_string();
-        let path = format!("{}/recordings/record_{}.wav", env!("CARGO_MANIFEST_DIR"), formatted_datetime);
-        let spec = debug.wav_spec_from_config(config.clone());
+        let formatted_datetime: String = current_datetime.format("%Y-%m-%d-%H:%M:%S").to_string();
+        let path = format!(
+            "{}/recordings/record_{}.wav",
+            env!("CARGO_MANIFEST_DIR"),
+            formatted_datetime
+        );
+        let spec = debug::wav_spec_from_config(config.clone());
         let writer = hound::WavWriter::create(&path, spec).unwrap();
         let writer = Arc::new(Mutex::new(Some(writer)));
 
@@ -95,10 +102,10 @@ impl AudioCapture {
         is_recording.store(true, Ordering::SeqCst);
 
         let stream = match config.sample_format() {
-            SampleFormat::F32 => self.build_stream::<f32>(&device, &config.into()),
-            SampleFormat::I8 => self.build_stream::<i8>(&device, &config.into()),
-            SampleFormat::I16 => self.build_stream::<i16>(&device, &config.into()),
-            SampleFormat::I32 => self.build_stream::<i32>(&device, &config.into()),
+            SampleFormat::F32 => self.build_stream(&device, &config.into()),
+            // SampleFormat::I8 => self.build_stream::<i8>(&device, &config.into()),
+            // SampleFormat::I16 => self.build_stream(&device, &config.into()),
+            // SampleFormat::I32 => self.build_stream(&device, &config.into()),
             _ => panic!("Unsupported sample format"),
         }
         .expect("Failed to build stream");
@@ -112,17 +119,15 @@ impl AudioCapture {
         self.stream = None;
     }
 
-    fn build_stream<T>(
+    fn build_stream(
         &self,
         device: &cpal::Device,
         config: &cpal::StreamConfig,
-    ) -> Result<cpal::Stream, cpal::BuildStreamError>
-    where
-        T: Sample<Float = f32> +hound::Sample+ SizedSample,
-    {
+    ) -> Result<cpal::Stream, cpal::BuildStreamError> {
         let is_recording = self.is_recording.clone();
         let writer = self.wav_writer.clone();
         let audio_connection = self.audio_connection.clone();
+        let sample_rate = config.sample_rate.0.clone();
         // let chunk_start = self.chunk_start.clone();
         // let buffer = self.buffer.clone();
         // let silence_counter = self.silence_counter.clone();
@@ -131,13 +136,14 @@ impl AudioCapture {
 
         device.build_input_stream(
             config,
-            move |data: &[T], _: &cpal::InputCallbackInfo| {
+            move |data: &[f32], _: &cpal::InputCallbackInfo| {
                 if !is_recording.load(Ordering::SeqCst) {
                     return;
                 }
 
-                write_input_data::<T, T>(data, &writer);
+                write_input_data::<f32, f32>(data, &writer);
                 if let Some(audio_connection) = &audio_connection {
+                    let data = encode_opus(data, sample_rate);
                     audio_connection.send_audio(data);
                 }
             },
@@ -147,16 +153,17 @@ impl AudioCapture {
             None,
         )
     }
-
-
-
 }
 
+fn encode_opus(data: &[f32], sample_rate: u32) -> Vec<u8> {
+    tracing::info!(sample_rate);
 
-
-fn encode_opus(data: &[i16], sample_rate: u32) -> Vec<u8> {
-    let mut encoder = Encoder::new(sample_rate, Channels::Mono, Application::Audio).unwrap();
-    let mut output = vec![0u8; 4096];
-    let len = encoder.encode(data, &mut output).unwrap();
+    let mut encoder = match Encoder::new(sample_rate, Channels::Mono, Application::Audio) {
+        Ok(encoder) => encoder,
+        Err(err) => panic!("Failed to create Opus encoder: {}", err),
+    };
+    
+    let mut output = [0; 256];
+    let len = encoder.encode_float(data, &mut output).unwrap();
     output[..len].to_vec()
 }

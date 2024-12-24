@@ -1,3 +1,7 @@
+use cpal::{FromSample, Sample};
+
+use super::WavWriterHandle;
+
 pub fn write_input_data<T, U>( input: &[T], writer: &WavWriterHandle)
 where
     T: Sample,
@@ -27,6 +31,6 @@ pub fn wav_spec_from_config(config: cpal::SupportedStreamConfig) -> hound::WavSp
         channels: config.channels() as _,
         sample_rate: config.sample_rate().0 as _,
         bits_per_sample: (config.sample_format().sample_size() * 8) as _,
-        sample_format: self.sample_format(config.sample_format()),
+        sample_format: sample_format(config.sample_format()),
     }
 }

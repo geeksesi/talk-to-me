@@ -18,11 +18,12 @@ impl AudioConnection {
         })
     }
 
-    pub async fn send_audio(&self, data: &[u8]) -> std::io::Result<()> {
+    pub async fn send_audio(&self, data: Vec<u8>) -> std::io::Result<()> {
         // Split data into chunks and send each chunk
         for chunk in data.chunks(MAX_UDP_PACKET_SIZE) {
             self.socket.send(chunk).await?;
         }
         Ok(())
     }
+    
 } 
